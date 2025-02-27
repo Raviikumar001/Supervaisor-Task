@@ -38,7 +38,7 @@ git clone https://github.com/Raviikumar001/Supervaisor-Task.git
 cd Supervaisor-Task
 
 # Install dependencies
-npm install
+npm install --legacy-peer-deps
 
 # Start development server
 npm run dev
