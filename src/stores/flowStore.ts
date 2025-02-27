@@ -21,24 +21,8 @@ interface FlowNode extends Node {
 
 
 interface FlowData {
-  steps: {
-    id: string;
-    label: string;
-    nodes: {
-      id: string;
-      label: string;
-      type: 'parent' | 'child';
-      parentId?: string;
-      children?: string[];
-      position: { x: number; y: number };
-    }[];
-  }[];
-  relationships: {
-    id: string;
-    source: string;
-    target: string;
-    type: string;
-  }[];
+  nodes: FlowNode[];
+  edges: Edge[];
 }
 
 
@@ -78,7 +62,10 @@ interface FlowState {
   attachNode: (sourceId: string, targetId: string, relationshipType: string) => void;
   getNodeChildren: (nodeId: string) => string[];
   createRelationship: (sourceId: string, targetId: string, relationshipType: string) => void;
-  exportData: () => FlowData;
+  exportData: () => {
+    nodes: FlowNode[];
+    edges: Edge[];
+  };
   importData: (data: FlowData) => void;
   history: {
     past: { nodes: FlowNode[]; edges: Edge[] }[];
@@ -405,156 +392,32 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
   
   exportData: () => {
-    const { nodes, edges } = get();
-    
-
-    const stepMap = new Map();
-    
-
-    nodes.forEach(node => {
-      if (node.data.nodeType === 'step') {
-        stepMap.set(node.id, {
-          id: node.id,
-          label: node.data.label,
-          nodes: []
-        });
-      }
-    });
-    
-
-    if (stepMap.size === 0) {
-      stepMap.set('default_step', {
-        id: 'default_step',
-        label: 'Default Step',
-        nodes: []
-      });
-    }
-    
-
-    nodes.forEach(node => {
-      if (node.data.nodeType !== 'step') {
-        const stepId = node.data.step || 'default_step';
-        const step = stepMap.get(stepId) || stepMap.get('default_step');
-        
-        if (step) {
-          step.nodes.push({
-            id: node.id,
-            label: node.data.label,
-            type: node.data.nodeType || 'parent',
-            parentId: node.data.parentId,
-            position: node.position,
-            children: nodes
-              .filter(n => n.data.parentId === node.id)
-              .map(n => n.id)
-          });
-        }
-      }
-    });
-    
-
-    const relationships = edges.map(edge => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      type: edge.data?.relationshipType || 'default'
-    }));
-
-    const flowData: FlowData = {
-      steps: Array.from(stepMap.values()),
-      relationships
+    return { 
+      nodes: get().nodes,
+      edges: get().edges 
     };
-    
-    return flowData;
   },
   
   importData: (data: FlowData) => {
     try {
-
-      set({ nodes: [], edges: [] });
-      
-      const newNodes: FlowNode[] = [];
-      const newEdges: Edge[] = [];
-      
-
-      data.steps.forEach(step => {
-
-        const stepNode: FlowNode = {
-          id: step.id,
-          type: 'default',
-          position: { x: Math.random() * 300, y: Math.random() * 100 },
+      set({ 
+        nodes: data.nodes.map(node => ({
+          ...node,
+          position: node.position,
           data: {
-            label: step.label,
-            type: 'default',
-            nodeType: 'step'
+            ...node.data,
+            relationships: node.data.relationships || []
           }
-        };
-        
-        newNodes.push(stepNode);
-        
-
-        step.nodes.forEach(node => {
-          const childNode: FlowNode = {
-            id: node.id,
-            type: 'default',
-            position: node.position || { x: Math.random() * 500, y: Math.random() * 300 + 100 },
-            data: {
-              label: node.label,
-              type: 'default',
-              nodeType: node.type,
-              step: step.id,
-              parentId: node.parentId,
-              hasChildren: (node.children?.length || 0) > 0
-            }
-          };
-          
-          newNodes.push(childNode);
-          
-
-          if (node.parentId) {
-            newEdges.push({
-              id: `edge_parent_${node.id}`,
-              source: node.parentId,
-              target: node.id,
-              type: 'smoothstep',
-              style: { stroke: '#8b5cf6', strokeWidth: 2 },
-              data: { relationshipType: 'parent-child' }
-            });
-          }
-        });
+        })),
+        edges: data.edges.map(edge => ({
+          ...edge,
+          type: edge.type || 'smoothstep',
+          style: edge.style || { stroke: '#94a3b8', strokeWidth: 2 }
+        }))
       });
-      
-
-      data.relationships.forEach(rel => {
-
-        const alreadyExists = newEdges.some(
-          edge => edge.source === rel.source && edge.target === rel.target
-        );
-        
-        if (!alreadyExists) {
-          newEdges.push({
-            id: rel.id,
-            source: rel.source,
-            target: rel.target,
-            type: 'smoothstep',
-            label: rel.type !== 'parent-child' && rel.type !== 'default' ? rel.type : undefined,
-            labelBgPadding: rel.type !== 'parent-child' ? [8, 4] : undefined,
-            labelBgBorderRadius: rel.type !== 'parent-child' ? 4 : undefined,
-            labelBgStyle: rel.type !== 'parent-child' ? { fill: '#f8fafc', fillOpacity: 0.8 } : undefined,
-            labelStyle: rel.type !== 'parent-child' ? { fill: '#0f172a', fontSize: 12 } : undefined,
-            style: { 
-              stroke: rel.type === 'parent-child' ? '#8b5cf6' : 
-                     rel.type === 'default' ? '#94a3b8' : '#0ea5e9', 
-              strokeWidth: 2,
-              strokeDasharray: rel.type !== 'parent-child' && rel.type !== 'default' ? '5,5' : undefined
-            },
-            data: { relationshipType: rel.type }
-          });
-        }
-      });
-      
-      set({ nodes: newNodes, edges: newEdges });
     } catch (error) {
-      console.error("Error importing flow data:", error);
+      console.error("Import error:", error);
+      throw error;
     }
   },
   

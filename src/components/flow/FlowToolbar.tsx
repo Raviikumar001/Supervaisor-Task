@@ -326,26 +326,22 @@ const FlowToolbar = () => {
           </DialogContent>
         </Dialog>
         
-        <Button
-          variant="outline"
-          size="sm"
+        <Button 
+          variant="outline" 
+          size="icon"
           onClick={undo}
           disabled={history.past.length === 0}
-          className="gap-2"
         >
           <Undo2 className="h-4 w-4" />
-          Undo
         </Button>
         
-        <Button
-          variant="outline"
-          size="sm"
+        <Button 
+          variant="outline" 
+          size="icon"
           onClick={redo}
           disabled={history.future.length === 0}
-          className="gap-2"
         >
           <Redo2 className="h-4 w-4" />
-          Redo
         </Button>
         
         <Button variant="outline" onClick={handleReset}>
