@@ -365,7 +365,7 @@ const FlowToolbar = () => {
       {/* Mobile view */}
       <div className="md:hidden flex flex-col p-2 space-y-2">
         <div className="flex justify-between items-center">
-          {/* First row - Main node operations */}
+
           <div className="flex space-x-2">
             <Popover>
               <PopoverTrigger asChild>
@@ -445,7 +445,7 @@ const FlowToolbar = () => {
               </PopoverContent>
             </Popover>
 
-            {/* Fixed draggable node buttons */}
+
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm">

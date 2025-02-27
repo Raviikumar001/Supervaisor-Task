@@ -1,69 +1,108 @@
-# Welcome to your Lovable project
+# Flowchart Builder
 
-## Project info
+An interactive flowchart builder tool that leverages React Flow to create, manage, and visualize node relationships. This tool allows users to create complex flowcharts with custom node types, define relationships between nodes, and export/import flow data via JSON.
 
-**URL**: https://lovable.dev/projects/7c116579-f1e1-4f76-8bc4-8898ab371f96
+## Features
 
-## How can I edit this code?
+- **Drag-and-drop Interface**: Easily create and position nodes with intuitive drag-and-drop functionality
+- **Relationship Management**:
+  - Parent-child hierarchies
+  - Custom relationship types (e.g., "triggers")
+  - Automatic attachment of sub-nodes when connecting parent nodes
+- **History Management**:
+  - Undo/redo functionality for all actions
+  - Session persistence via local storage
+- **Data Import/Export**:
+  - Export flowcharts as JSON -> make a flow, click on export, reset and then paste the json back.
+  - Import previously saved flowcharts
+  - Structured data model for nodes, relationships, and styling
+- **Custom Styling**:
+  - Different node types with distinct visual styles
+  - Customizable edge appearances based on relationship types
+  - Responsive design that works across device sizes
 
-There are several ways of editing your application.
+## Getting Started
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/7c116579-f1e1-4f76-8bc4-8898ab371f96) and start prompting.
+- Node.js v18 or higher
+- npm v9 or higher
 
-Changes made via Lovable will be committed automatically to this repo.
+### Installation
 
-**Use your preferred IDE**
+```bash
+# Clone the repository
+git clone https://github.com/Raviikumar001/Supervaisor-Task.git
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+# Navigate to project directory
+cd Supervaisor-Task
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# Install dependencies
+npm install
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Usage
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. **Create Nodes**: Click the toolbar buttons to add different node types (parent, child, step)
+2. **Connect Nodes**: Drag from one node's handle to another to create relationships
+3. **Edit Properties**: Select a node to edit its properties in the sidebar
+4. **Save/Load**: Use the toolbar to export your flowchart as JSON or load a previously saved one
 
-**Use GitHub Codespaces**
+## Data Structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The flowchart is represented as a JSON object with the following structure:
 
-## What technologies are used for this project?
+```json
+{
+  "nodes": [
+    {
+      "id": "node_id",
+      "type": "default",
+      "position": { "x": 0, "y": 0 },
+      "data": {
+        "label": "Node Label",
+        "nodeType": "parent|child|step",
+        "hasChildren": true|false,
+        "relationships": [
+          {
+            "type": "parent-child|triggers",
+            "targetId": "target_node_id"
+          }
+        ]
+      },
+      "style": { /* Custom styling properties */ }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_id",
+      "source": "source_node_id",
+      "target": "target_node_id",
+      "type": "smoothstep",
+      "style": { /* Edge styling */ },
+      "data": {
+        "relationshipType": "parent-child|triggers"
+      }
+    }
+  ]
+}
+```
 
-This project is built with .
+## Tech Stack
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Frontend Framework**: React with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS with shadcn-ui components
+- **Flowchart Library**: React Flow
+- **State Management**: Zustand
 
-## How can I deploy this project?
+## Key Implementation Files
 
-Simply open [Lovable](https://lovable.dev/projects/7c116579-f1e1-4f76-8bc4-8898ab371f96) and click on Share -> Publish.
+- `flowStore.ts`: Core state management (undo/redo)
+- `FlowToolbar.tsx`: UI controls for manipulating flowcharts 
+- `index.css`: Custom node styling 
+- `flowStore.ts`: Relationship type definitions and handling
 
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
