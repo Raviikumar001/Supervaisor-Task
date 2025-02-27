@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Monitor, Layers, Box, CircleDot, Link2 } from "lucide-react";
+import { Plus, Trash2, Monitor, Layers, Box, CircleDot, Link2, Undo2, Redo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFlowStore } from "@/stores/flowStore";
 import { toast } from "@/hooks/use-toast";
@@ -11,7 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 
 const FlowToolbar = () => {
-  const { resetCanvas, addNode, importData, exportData, nodes, createRelationship } = useFlowStore();
+  const { 
+    resetCanvas, 
+    addNode, 
+    importData, 
+    exportData, 
+    nodes, 
+    createRelationship, 
+    undo, 
+    redo, 
+    history 
+  } = useFlowStore();
   const [nodeLabel, setNodeLabel] = useState("");
   const [nodeType, setNodeType] = useState<"step" | "parent" | "child">("step");
   const [stepId, setStepId] = useState("");
@@ -316,9 +326,31 @@ const FlowToolbar = () => {
           </DialogContent>
         </Dialog>
         
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={undo}
+          disabled={history.past.length === 0}
+          className="gap-2"
+        >
+          <Undo2 className="h-4 w-4" />
+          Undo
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={redo}
+          disabled={history.future.length === 0}
+          className="gap-2"
+        >
+          <Redo2 className="h-4 w-4" />
+          Redo
+        </Button>
+        
         <Button variant="outline" onClick={handleReset}>
-          <Trash2 className="h-4 w-4 mr-1" />
-          Reset
+          <Trash2 className="h-4 w-4 mr-2" />
+          Reset Canvas
         </Button>
       </div>
     </div>

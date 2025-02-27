@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Node, Edge, Position, Connection } from '@xyflow/react';
+import  useUndoable  from "use-undoable";
 
 interface NodeData {
   label: string;
@@ -18,7 +19,7 @@ interface FlowNode extends Node {
   data: NodeData;
 }
 
-// Define our JSON data structure for the flowchart
+
 interface FlowData {
   steps: {
     id: string;
@@ -40,9 +41,25 @@ interface FlowData {
   }[];
 }
 
+
+interface FlowSnapshot {
+  nodes: FlowNode[];
+  edges: Edge[];
+}
+
 interface FlowState {
   nodes: FlowNode[];
   edges: Edge[];
+  
+
+  isBatchingUpdates: boolean;
+  startBatchingUpdates: () => void;
+  endBatchingUpdates: () => void;
+  
+
+  takeSnapshot: () => FlowSnapshot;
+  applySnapshot: (snapshot: FlowSnapshot) => void;
+  
   addNode: (
     type: string, 
     label: string, 
@@ -63,11 +80,43 @@ interface FlowState {
   createRelationship: (sourceId: string, targetId: string, relationshipType: string) => void;
   exportData: () => FlowData;
   importData: (data: FlowData) => void;
+  history: {
+    past: { nodes: FlowNode[]; edges: Edge[] }[];
+    future: { nodes: FlowNode[]; edges: Edge[] }[];
+  };
+  undo: () => void;
+  redo: () => void;
+  addToHistory: () => void;
 }
 
 export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: [],
   edges: [],
+  isBatchingUpdates: false,
+  
+  startBatchingUpdates: () => {
+    set({ isBatchingUpdates: true });
+  },
+  
+  endBatchingUpdates: () => {
+    set({ isBatchingUpdates: false });
+  },
+  
+  takeSnapshot: () => {
+    const { nodes, edges } = get();
+
+    return {
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges))
+    };
+  },
+  
+  applySnapshot: (snapshot: FlowSnapshot) => {
+    set({
+      nodes: snapshot.nodes,
+      edges: snapshot.edges
+    });
+  },
   
   addNode: (
     type: string, 
@@ -77,6 +126,9 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     stepId?: string,
     parentId?: string
   ) => {
+
+    get().addToHistory();
+
     const viewportCenter = {
       x: window.innerWidth / 2 - 75,
       y: window.innerHeight / 2 - 25
@@ -119,7 +171,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     set((state) => {
       const newNodes = [...state.nodes, node];
       
-      // If this is a child node with a parent, automatically create an edge
+
       if (nodeType === 'child' && parentId) {
         const newEdge: Edge = {
           id: `edge_${Date.now()}`,
@@ -156,7 +208,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   
   onNodesChange: (changes) => {
     set((state) => {
-      // Handle position changes
+
       let updatedNodes = [...state.nodes];
       
       changes.forEach((change: any) => {
@@ -169,16 +221,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         }
       });
       
-      // Handle node removal (also remove connected edges and child nodes)
+
       const nodesToRemove = changes
         .filter((change: any) => change.type === 'remove')
         .map((change: any) => change.id);
       
       if (nodesToRemove.length > 0) {
-        // First, identify any child nodes that need to be removed
+
         const allNodesToRemove = [...nodesToRemove];
         
-        // Find child nodes recursively
+
         const findChildNodesToRemove = (nodeId: string) => {
           const childNodes = updatedNodes.filter(node => 
             node.data.parentId === nodeId
@@ -192,12 +244,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         
         nodesToRemove.forEach(nodeId => findChildNodesToRemove(nodeId));
         
-        // Filter out the nodes that should be removed
+
         updatedNodes = updatedNodes.filter(node => 
           !allNodesToRemove.includes(node.id)
         );
         
-        // Also remove any edges connected to these nodes
+
         const edgesToKeep = state.edges.filter(edge => 
           !allNodesToRemove.includes(edge.source) && 
           !allNodesToRemove.includes(edge.target)
@@ -256,13 +308,13 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     };
     
     set((state) => {
-      // Check if an edge already exists between these nodes
+
       const edgeExists = state.edges.some(
         edge => edge.source === sourceId && edge.target === targetId
       );
       
       if (!edgeExists) {
-        // Add the relationship to the source node's data
+
         const updatedNodes = state.nodes.map(node => {
           if (node.id === sourceId) {
             const relationships = node.data.relationships || [];
@@ -298,7 +350,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
   
   createRelationship: (sourceId: string, targetId: string, relationshipType: string) => {
-    // Create a custom relationship between nodes
+
     const newEdge: Edge = {
       id: `edge_${Date.now()}`,
       source: sourceId,
@@ -318,13 +370,13 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     };
     
     set((state) => {
-      // Check if an edge already exists between these nodes
+
       const edgeExists = state.edges.some(
         edge => edge.source === sourceId && edge.target === targetId
       );
       
       if (!edgeExists) {
-        // Add the relationship to the source node's data
+
         const updatedNodes = state.nodes.map(node => {
           if (node.id === sourceId) {
             const relationships = node.data.relationships || [];
@@ -355,10 +407,10 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   exportData: () => {
     const { nodes, edges } = get();
     
-    // Group nodes by steps
+
     const stepMap = new Map();
     
-    // First pass - collect steps
+
     nodes.forEach(node => {
       if (node.data.nodeType === 'step') {
         stepMap.set(node.id, {
@@ -369,7 +421,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       }
     });
     
-    // If no steps exist, create a default step
+
     if (stepMap.size === 0) {
       stepMap.set('default_step', {
         id: 'default_step',
@@ -378,7 +430,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       });
     }
     
-    // Second pass - collect nodes per step
+
     nodes.forEach(node => {
       if (node.data.nodeType !== 'step') {
         const stepId = node.data.step || 'default_step';
@@ -399,15 +451,14 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       }
     });
     
-    // Collect relationships
+
     const relationships = edges.map(edge => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
       type: edge.data?.relationshipType || 'default'
     }));
-    
-    // Build final data structure
+
     const flowData: FlowData = {
       steps: Array.from(stepMap.values()),
       relationships
@@ -418,15 +469,15 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   
   importData: (data: FlowData) => {
     try {
-      // First, clear the canvas
+
       set({ nodes: [], edges: [] });
       
       const newNodes: FlowNode[] = [];
       const newEdges: Edge[] = [];
       
-      // Import steps as nodes
+
       data.steps.forEach(step => {
-        // Add step node
+
         const stepNode: FlowNode = {
           id: step.id,
           type: 'default',
@@ -440,7 +491,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         
         newNodes.push(stepNode);
         
-        // Add child nodes
+
         step.nodes.forEach(node => {
           const childNode: FlowNode = {
             id: node.id,
@@ -458,7 +509,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           
           newNodes.push(childNode);
           
-          // Add parent-child edge if parentId exists
+
           if (node.parentId) {
             newEdges.push({
               id: `edge_parent_${node.id}`,
@@ -472,9 +523,9 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         });
       });
       
-      // Import relationships
+
       data.relationships.forEach(rel => {
-        // Skip if we already created this edge as a parent-child relationship
+
         const alreadyExists = newEdges.some(
           edge => edge.source === rel.source && edge.target === rel.target
         );
@@ -505,5 +556,136 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     } catch (error) {
       console.error("Error importing flow data:", error);
     }
+  },
+  
+  history: {
+    past: [],
+    future: []
+  },
+
+  addToHistory: () => {
+    const currentState = { 
+      nodes: [...get().nodes], 
+      edges: [...get().edges] 
+    };
+    
+    set(state => ({
+      history: {
+        past: [...state.history.past, currentState],
+        future: []
+      }
+    }));
+  },
+
+  undo: () => {
+    const { history } = get();
+    if (history.past.length === 0) return;
+
+    const previousState = history.past[history.past.length - 1];
+    const newPast = history.past.slice(0, -1);
+
+    set({
+      nodes: previousState.nodes,
+      edges: previousState.edges,
+      history: {
+        past: newPast,
+        future: [{ nodes: get().nodes, edges: get().edges }, ...history.future]
+      }
+    });
+  },
+
+  redo: () => {
+    const { history } = get();
+    if (history.future.length === 0) return;
+
+    const nextState = history.future[0];
+    const newFuture = history.future.slice(1);
+
+    set({
+      nodes: nextState.nodes,
+      edges: nextState.edges,
+      history: {
+        past: [...history.past, { nodes: get().nodes, edges: get().edges }],
+        future: newFuture
+      }
+    });
   }
 }));
+
+
+export const useFlowUndoRedo = () => {
+  const takeSnapshot = useFlowStore(state => state.takeSnapshot);
+  const applySnapshot = useFlowStore(state => state.applySnapshot);
+  const startBatchingUpdates = useFlowStore(state => state.startBatchingUpdates);
+  const endBatchingUpdates = useFlowStore(state => state.endBatchingUpdates);
+  
+
+  const [currentSnapshot, { undo, redo, reset, set: setSnapshot, canUndo, canRedo }] = useUndoable(
+    takeSnapshot()
+  );
+  
+
+  const applyCurrentSnapshot = () => {
+    applySnapshot(currentSnapshot);
+  };
+  
+
+  const captureSnapshot = () => {
+    setSnapshot(takeSnapshot());
+  };
+  
+
+  const [isDragging, setIsDragging] = React.useState(false);
+  const dragTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+
+  const handleDragStart = () => {
+    startBatchingUpdates();
+    setIsDragging(true);
+  };
+  
+
+  const handleDragEnd = () => {
+
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+    }
+    
+
+    dragTimeoutRef.current = setTimeout(() => {
+      endBatchingUpdates();
+      setIsDragging(false);
+      captureSnapshot(); 
+    }, 300); 
+  };
+  
+
+  const undoOperation = () => {
+    undo();
+    applyCurrentSnapshot();
+  };
+  
+
+  const redoOperation = () => {
+    redo();
+    applyCurrentSnapshot();
+  };
+  
+
+  const resetHistory = () => {
+    reset(takeSnapshot());
+    applyCurrentSnapshot();
+  };
+  
+  return {
+    captureSnapshot,
+    undoOperation,
+    redoOperation,
+    resetHistory,
+    canUndo,
+    canRedo,
+    handleDragStart,
+    handleDragEnd,
+    isDragging
+  };
+};
