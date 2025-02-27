@@ -13,6 +13,7 @@ interface NodeData {
     type: string;
     targetId: string;
   }[];
+  [key: string]: unknown;
 }
 
 interface FlowNode extends Node {

@@ -55,17 +55,17 @@ const FlowCanvas = () => {
   };
 
   const handleConnect = useCallback((params: Connection | Edge) => {
-    // Check if this is a parent-child relationship attachment
+    
     const sourceNode = nodes.find(n => n.id === params.source);
     const targetNode = nodes.find(n => n.id === params.target);
     
     if (sourceNode && targetNode) {
-      // Check if sourceNode is a parent node
+
       if (sourceNode.data.nodeType === 'parent') {
-        // Automatically attach children
+
         attachNode(sourceNode.id, targetNode.id, 'parent-child');
         
-        // Get all children of the parent and attach them too
+
         const children = getNodeChildren(sourceNode.id);
         children.forEach(childId => {
           if (childId !== targetNode.id) {
@@ -78,16 +78,16 @@ const FlowCanvas = () => {
           description: "Parent node and all its children have been attached.",
         });
       } else {
-        // Normal connection
-        onConnect(params);
+
+        onConnect(params as Connection);
         toast({
           title: "Connection Created",
           description: "Nodes have been connected successfully.",
         });
       }
     } else {
-      // Regular connection
-      onConnect(params);
+
+      onConnect(params as Connection);
     }
   }, [nodes, onConnect, attachNode, getNodeChildren]);
 
