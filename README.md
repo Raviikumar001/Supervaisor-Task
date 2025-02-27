@@ -11,7 +11,6 @@ An interactive flowchart builder tool that leverages React Flow to create, manag
   - Automatic attachment of sub-nodes when connecting parent nodes
 - **History Management**:
   - Undo/redo functionality for all actions
-  - Session persistence via local storage
 - **Data Import/Export**:
   - Export flowcharts as JSON -> make a flow, click on export, reset and then paste the json back.
   - Import previously saved flowcharts
