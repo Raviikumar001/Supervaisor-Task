@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { useFlowStore } from "@/stores/flowStore";
 import { toast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const FlowToolbar = () => {
   const { resetCanvas, addNode, importData, exportData, nodes, createRelationship } = useFlowStore();
@@ -19,6 +20,11 @@ const FlowToolbar = () => {
   const [sourceNodeId, setSourceNodeId] = useState("");
   const [targetNodeId, setTargetNodeId] = useState("");
   const [relationshipType, setRelationshipType] = useState("");
+  
+  // New state for import modal
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [jsonImportText, setJsonImportText] = useState("");
+  const [importError, setImportError] = useState("");
 
   const handleReset = () => {
     resetCanvas();
@@ -79,28 +85,27 @@ const FlowToolbar = () => {
     });
   };
 
-  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  // New import function that uses the text from the modal
+  const handleImportFromJson = () => {
+    setImportError("");
+    
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
+      const data = JSON.parse(jsonImportText);
       importData(data);
       toast({
         title: "Flow Imported",
         description: "Flow data has been imported successfully.",
       });
+      setIsImportDialogOpen(false);
+      setJsonImportText("");
     } catch (error) {
+      setImportError("Invalid JSON format. Please check your input.");
       toast({
         title: "Import Failed",
-        description: "Failed to import flow data. Please check the file format.",
+        description: "Failed to import flow data. Please check the JSON format.",
         variant: "destructive",
       });
     }
-    
-    // Reset the input
-    event.target.value = '';
   };
 
   return (
@@ -274,18 +279,42 @@ const FlowToolbar = () => {
           Export
         </Button>
         
-        <label htmlFor="import-file">
-          <Button variant="outline" as="span">
-            Import
-          </Button>
-          <input 
-            id="import-file" 
-            type="file" 
-            accept=".json" 
-            className="hidden" 
-            onChange={handleImport}
-          />
-        </label>
+        {/* New Import Dialog */}
+        <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              Import
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Import Flow Data</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="json-input">Paste JSON Data</Label>
+                <Textarea 
+                  id="json-input" 
+                  placeholder='{"nodes": [], "edges": []}' 
+                  value={jsonImportText}
+                  onChange={(e) => setJsonImportText(e.target.value)}
+                  className="min-h-[200px] font-mono"
+                />
+                {importError && (
+                  <p className="text-sm text-red-500">{importError}</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="secondary" onClick={() => setIsImportDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleImportFromJson}>
+                Import Data
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         
         <Button variant="outline" onClick={handleReset}>
           <Trash2 className="h-4 w-4 mr-1" />
