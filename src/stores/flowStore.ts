@@ -46,39 +46,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         fontSize: '14px',
         fontWeight: '500',
         transition: 'all 0.2s ease',
-        cursor: 'move',
-        ':hover': {
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-          borderColor: '#cbd5e1'
-        }
-      },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
+        cursor: 'move'
+      }
     };
 
-    const existingNodes = get().nodes;
-    const newEdges: Edge[] = [];
-
-    if (existingNodes.length > 0) {
-      const lastNode = existingNodes[existingNodes.length - 1];
-      newEdges.push({
-        id: `edge_${lastNode.id}-${node.id}`,
-        source: lastNode.id,
-        target: node.id,
-        type: 'smoothstep',
-        style: { 
-          stroke: '#94a3b8', 
-          strokeWidth: 2,
-          opacity: 0.8,
-          transition: 'all 0.2s ease'
-        },
-        animated: true
-      });
-    }
-
     set((state) => ({
-      nodes: [...state.nodes, node],
-      edges: [...state.edges, ...newEdges]
+      nodes: [...state.nodes, node]
     }));
   },
   updateNodeLabel: (nodeId: string, newLabel: string) => {

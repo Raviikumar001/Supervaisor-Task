@@ -1,4 +1,4 @@
-import { ReactFlow, Background, Controls } from '@xyflow/react';
+import { ReactFlow, Background, Controls, Connection, Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { toast } from '@/hooks/use-toast';
 import { useFlowStore } from '@/stores/flowStore';
@@ -53,6 +53,15 @@ const FlowCanvas = () => {
     }
   };
 
+  const handleConnect = (params: Connection | Edge) => {
+    // Validate connection if needed
+    onConnect(params);
+    toast({
+      title: "Connection Created",
+      description: "Nodes have been connected successfully.",
+    });
+  };
+
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
     const type = event.dataTransfer.getData('application/reactflow');
@@ -86,7 +95,7 @@ const FlowCanvas = () => {
     <div 
       className="w-full h-[calc(100vh-2rem)] bg-background"
       onDrop={onDrop}
-      onDragOver={onDragOver}
+      onDragOver={(e) => e.preventDefault()}
     >
       <ReactFlow
         nodes={nodes}
@@ -94,14 +103,8 @@ const FlowCanvas = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDoubleClick={handleNodeDoubleClick}
+        onConnect={handleConnect}
         nodeTypes={nodeTypes}
-        onConnect={(params) => {
-          onConnect(params);
-          toast({
-            title: "Connection Created",
-            description: "Nodes have been connected successfully.",
-          });
-        }}
         fitView
         deleteKeyCode={['Backspace', 'Delete']}
         style={{ background: '#f8fafc' }}
@@ -114,6 +117,7 @@ const FlowCanvas = () => {
             opacity: 0.8
           }
         }}
+        connectOnClick={false}
       >
         <Background 
           color="#94a3b8" 

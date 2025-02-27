@@ -14,18 +14,15 @@ interface CustomNodeProps {
 const CustomNode: React.FC<CustomNodeProps> = ({ id, data }) => {
   const { onNodesChange } = useFlowStore();
 
-
-
   return (
     <div className="group relative px-4 py-2">
-      {/* Four Handles positioned on borders */}
       <Handle
-        type="target"
+        type="source"
         position={Position.Top}
         className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-top-1.5"
       />
       <Handle
-        type="target"
+        type="source"
         position={Position.Left}
         className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-left-1.5"
       />
@@ -40,8 +37,28 @@ const CustomNode: React.FC<CustomNodeProps> = ({ id, data }) => {
         className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-bottom-1.5"
       />
       
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-top-1.5"
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-left-1.5"
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-right-1.5"
+      />
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-bottom-1.5"
+      />
+      
       <div className="flex items-center gap-2 min-w-[150px]">
-       
         <span 
           className="node-label select-none flex-1"
           style={{ outline: 'none' }}
