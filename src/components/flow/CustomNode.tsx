@@ -8,68 +8,86 @@ interface CustomNodeProps {
   data: {
     label: string;
     type: string;
+    nodeType?: 'step' | 'parent' | 'child';
+    step?: string;
+    parentId?: string;
+    hasChildren?: boolean;
+    relationships?: {
+      type: string;
+      targetId: string;
+    }[];
   };
+  selected: boolean;
 }
 
-const CustomNode: React.FC<CustomNodeProps> = ({ id, data }) => {
+const CustomNode: React.FC<CustomNodeProps> = ({ id, data, selected }) => {
   const { onNodesChange } = useFlowStore();
 
-  return (
-    <div className="group relative px-4 py-2">
-      <Handle
-        type="source"
-        position={Position.Top}
-        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-top-1.5"
-      />
-      <Handle
-        type="source"
-        position={Position.Left}
-        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-left-1.5"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-right-1.5"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-bottom-1.5"
-      />
-      
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-top-1.5"
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-left-1.5"
-      />
-      <Handle
-        type="target"
-        position={Position.Right}
-        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-right-1.5"
-      />
-      <Handle
-        type="target"
-        position={Position.Bottom}
-        className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white !-bottom-1.5"
-      />
-      
-      <div className="flex items-center gap-2 min-w-[150px]">
-        <span 
-          className="node-label select-none flex-1"
-          style={{ outline: 'none' }}
-        >
-          {data.label}
-        </span>
-      </div>
+  // Icon based on node type
+  const getNodeIcon = () => {
+    switch (data.nodeType) {
+      case 'step':
+        return <Box className="h-4 w-4 mr-2" />;
+      case 'parent':
+        return <Square className="h-4 w-4 mr-2" />;
+      case 'child':
+        return <CircleDot className="h-4 w-4 mr-2" />;
+      default:
+        return <Box className="h-4 w-4 mr-2" />;
+    }
+  };
 
-      <button
-        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-white 
-                   opacity-0 group-hover:opacity-100 transition-opacity"
+  const getBorderColor = () => {
+    if (selected) return '#3b82f6';
+    
+    switch (data.nodeType) {
+      case 'step':
+        return '#f97316';
+      case 'parent':
+        return '#8b5cf6';
+      case 'child':
+        return '#10b981';
+      default:
+        return '#e2e8f0';
+    }
+  };
+
+  return (
+    <div className={`custom-node ${data.nodeType || ''}`} style={{
+      borderColor: getBorderColor(),
+      borderWidth: selected ? '2px' : '1px',
+    }}>
+      <Handle 
+        type="target" 
+        position={Position.Top} 
+        className="custom-handle"
+      />
+      
+      <div className="flex items-center p-3">
+        {getNodeIcon()}
+        <div className="node-label" contentEditable={false}>
+          {data.label}
+        </div>
+      </div>
+      
+      {data.nodeType === 'step' && (
+        <div className="text-xs text-gray-500 px-3 pb-2">Step</div>
+      )}
+      
+      {data.nodeType === 'parent' && (
+        <div className="text-xs text-gray-500 px-3 pb-2">Parent Node</div>
+      )}
+      
+      {data.nodeType === 'child' && (
+        <div className="text-xs text-gray-500 px-3 pb-2">Child of: {data.parentId}</div>
+      )}
+      
+      {data.hasChildren && (
+        <div className="text-xs text-blue-500 px-3 pb-2">Has children</div>
+      )}
+      
+      <button 
+        className="node-remove-btn"
         onClick={(e) => {
           e.stopPropagation();
           onNodesChange([{ type: 'remove', id }]);
@@ -77,6 +95,12 @@ const CustomNode: React.FC<CustomNodeProps> = ({ id, data }) => {
       >
         ×
       </button>
+      
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        className="custom-handle"
+      />
     </div>
   );
 };

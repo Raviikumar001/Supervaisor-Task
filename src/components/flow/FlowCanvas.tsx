@@ -1,4 +1,5 @@
-import { ReactFlow, Background, Controls, Connection, Edge } from '@xyflow/react';
+import React, { useCallback } from 'react';
+import { ReactFlow, Background, Controls, Connection, Edge, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { toast } from '@/hooks/use-toast';
 import { useFlowStore } from '@/stores/flowStore';
@@ -12,59 +13,90 @@ const FlowCanvas = () => {
     onNodesChange,
     onEdgesChange,
     onConnect,
-    updateNodeLabel
+    updateNodeLabel,
+    attachNode,
+    getNodeChildren
   } = useFlowStore();
+  
+  const reactFlowInstance = useReactFlow();
 
-  const handleNodeDoubleClick = (event: any, node: any) => {
-    const nodeElement = event.target.closest('.react-flow__node');
-    if (nodeElement) {
-      const labelElement = nodeElement.querySelector('[contenteditable]');
+  const handleNodeDoubleClick = (event: React.MouseEvent, node: any) => {
+    const nodeElement = event.target as HTMLElement;
+    const closestNode = nodeElement.closest('.react-flow__node');
+    
+    if (closestNode) {
+      const labelElement = closestNode.querySelector('.node-label') as HTMLElement;
       if (labelElement) {
+        labelElement.contentEditable = 'true';
         labelElement.focus();
-      } else {
-        // Make the text editable
-        const textElement = nodeElement.querySelector('.node-label');
-        if (textElement) {
-          textElement.contentEditable = 'true';
-          textElement.focus();
 
-          const handleBlur = () => {
-            textElement.contentEditable = 'false';
-            const newLabel = textElement.textContent || '';
-            if (newLabel !== node.data.label) {
-              updateNodeLabel(node.id, newLabel);
-              toast({
-                title: "Node Updated",
-                description: "Node label has been updated successfully.",
-              });
-            }
-            textElement.removeEventListener('blur', handleBlur);
-          };
+        const handleBlur = () => {
+          labelElement.contentEditable = 'false';
+          const newLabel = labelElement.textContent || '';
+          if (newLabel !== node.data.label) {
+            updateNodeLabel(node.id, newLabel);
+            toast({
+              title: "Node Updated",
+              description: "Node label has been updated successfully.",
+            });
+          }
+          labelElement.removeEventListener('blur', handleBlur);
+        };
 
-          textElement.addEventListener('blur', handleBlur);
-          textElement.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              textElement.blur();
-            }
-          });
-        }
+        labelElement.addEventListener('blur', handleBlur);
+        labelElement.addEventListener('keypress', (e: KeyboardEvent) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            labelElement.blur();
+          }
+        });
       }
     }
   };
 
-  const handleConnect = (params: Connection | Edge) => {
-    // Validate connection if needed
-    onConnect(params);
-    toast({
-      title: "Connection Created",
-      description: "Nodes have been connected successfully.",
-    });
-  };
+  const handleConnect = useCallback((params: Connection | Edge) => {
+    // Check if this is a parent-child relationship attachment
+    const sourceNode = nodes.find(n => n.id === params.source);
+    const targetNode = nodes.find(n => n.id === params.target);
+    
+    if (sourceNode && targetNode) {
+      // Check if sourceNode is a parent node
+      if (sourceNode.data.nodeType === 'parent') {
+        // Automatically attach children
+        attachNode(sourceNode.id, targetNode.id, 'parent-child');
+        
+        // Get all children of the parent and attach them too
+        const children = getNodeChildren(sourceNode.id);
+        children.forEach(childId => {
+          if (childId !== targetNode.id) {
+            attachNode(childId, targetNode.id, 'child-connection');
+          }
+        });
+        
+        toast({
+          title: "Parent Node Attached",
+          description: "Parent node and all its children have been attached.",
+        });
+      } else {
+        // Normal connection
+        onConnect(params);
+        toast({
+          title: "Connection Created",
+          description: "Nodes have been connected successfully.",
+        });
+      }
+    } else {
+      // Regular connection
+      onConnect(params);
+    }
+  }, [nodes, onConnect, attachNode, getNodeChildren]);
 
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
     const type = event.dataTransfer.getData('application/reactflow');
+    const nodeType = event.dataTransfer.getData('node-type');
+    const step = event.dataTransfer.getData('step');
+    const parentId = event.dataTransfer.getData('parent-id');
     
     const reactFlowBounds = document.querySelector('.react-flow')?.getBoundingClientRect();
     if (reactFlowBounds && type) {
@@ -72,9 +104,20 @@ const FlowCanvas = () => {
         x: event.clientX - reactFlowBounds.left - 75,
         y: event.clientY - reactFlowBounds.top - 25
       };
-      useFlowStore.getState().addNode(type, 'New Node', position);
+      
+      useFlowStore.getState().addNode(
+        type, 
+        nodeType === 'step' ? `Step ${Date.now().toString().slice(-4)}` : 
+        nodeType === 'parent' ? `Parent Node` : 
+        nodeType === 'child' ? `Child Node` : 'New Node', 
+        position,
+        nodeType as any,
+        step,
+        parentId
+      );
+      
       toast({
-        title: "Node Added",
+        title: `${nodeType || 'Node'} Added`,
         description: "New node added to canvas.",
       });
     }
@@ -88,46 +131,33 @@ const FlowCanvas = () => {
   const nodeTypes = {
     default: CustomNode,
     input: CustomNode,
-    output: CustomNode
+    output: CustomNode,
+    step: CustomNode,
+    parent: CustomNode,
+    child: CustomNode
   };
 
   return (
-    <div 
-      className="w-full h-[calc(100vh-2rem)] bg-background"
-      onDrop={onDrop}
-      onDragOver={(e) => e.preventDefault()}
-    >
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeDoubleClick={handleNodeDoubleClick}
-        onConnect={handleConnect}
-        nodeTypes={nodeTypes}
-        fitView
-        deleteKeyCode={['Backspace', 'Delete']}
-        style={{ background: '#f8fafc' }}
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          animated: true,
-          style: { 
-            stroke: '#94a3b8', 
-            strokeWidth: 2,
-            opacity: 0.8
-          }
-        }}
-        connectOnClick={false}
+    <div className="h-full w-full flex flex-col">
+      <FlowToolbar />
+      <div className="flex-1 w-full h-full border rounded-md overflow-hidden relative" 
+        onDrop={onDrop} 
+        onDragOver={onDragOver}
       >
-        <Background 
-          color="#94a3b8" 
-          gap={20} 
-          size={1}
-          variant="dots"
-        />
-        <Controls />
-        <FlowToolbar />
-      </ReactFlow>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={handleConnect}
+          onNodeDoubleClick={handleNodeDoubleClick}
+          nodeTypes={nodeTypes}
+          fitView
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
+      </div>
     </div>
   );
 };
