@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { Node, Edge, Position } from '@xyflow/react';
 
@@ -30,26 +29,56 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       position: position || viewportCenter,
       data: { 
         label,
-        editing: false 
+        editing: false,
+        type
       },
       draggable: true,
       style: {
-        background: '#ffffff',
-        color: '#1a1a1a',
+        background: type === 'input' ? '#e0f2fe' : 
+                   type === 'output' ? '#dcfce7' : 
+                   '#ffffff',
+        color: '#1e293b',
         border: '1px solid #e2e8f0',
-        padding: '12px 16px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-        width: '150px',
+        padding: '16px 20px',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        width: '180px',
         fontSize: '14px',
-        transition: 'box-shadow 0.2s, border-color 0.2s',
-        cursor: 'move'
+        fontWeight: '500',
+        transition: 'all 0.2s ease',
+        cursor: 'move',
+        ':hover': {
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          borderColor: '#cbd5e1'
+        }
       },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
     };
+
+    const existingNodes = get().nodes;
+    const newEdges: Edge[] = [];
+
+    if (existingNodes.length > 0) {
+      const lastNode = existingNodes[existingNodes.length - 1];
+      newEdges.push({
+        id: `edge_${lastNode.id}-${node.id}`,
+        source: lastNode.id,
+        target: node.id,
+        type: 'smoothstep',
+        style: { 
+          stroke: '#94a3b8', 
+          strokeWidth: 2,
+          opacity: 0.8,
+          transition: 'all 0.2s ease'
+        },
+        animated: true
+      });
+    }
+
     set((state) => ({
-      nodes: [...state.nodes, node]
+      nodes: [...state.nodes, node],
+      edges: [...state.edges, ...newEdges]
     }));
   },
   updateNodeLabel: (nodeId: string, newLabel: string) => {

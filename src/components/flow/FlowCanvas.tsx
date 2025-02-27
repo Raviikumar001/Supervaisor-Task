@@ -1,9 +1,9 @@
-
 import { ReactFlow, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { toast } from '@/hooks/use-toast';
 import { useFlowStore } from '@/stores/flowStore';
 import FlowToolbar from './FlowToolbar';
+import CustomNode from './CustomNode';
 
 const FlowCanvas = () => {
   const {
@@ -77,13 +77,9 @@ const FlowCanvas = () => {
   };
 
   const nodeTypes = {
-    default: ({ data }: { data: { label: string } }) => (
-      <div className="flex items-center justify-center w-full h-full">
-        <span className="node-label select-none" style={{ outline: 'none' }}>
-          {data.label}
-        </span>
-      </div>
-    ),
+    default: CustomNode,
+    input: CustomNode,
+    output: CustomNode
   };
 
   return (
@@ -109,11 +105,21 @@ const FlowCanvas = () => {
         fitView
         deleteKeyCode={['Backspace', 'Delete']}
         style={{ background: '#f8fafc' }}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          animated: true,
+          style: { 
+            stroke: '#94a3b8', 
+            strokeWidth: 2,
+            opacity: 0.8
+          }
+        }}
       >
         <Background 
           color="#94a3b8" 
           gap={20} 
           size={1}
+          variant="dots"
         />
         <Controls />
         <FlowToolbar />
